@@ -21,6 +21,7 @@ jobs:
       image: ubuntu:22.04
       env:
         TZ: Asia/Shanghai
+        FORCE_UNSAFE_CONFIGURE: 1
       volumes:
         - /data:/data
     steps:
