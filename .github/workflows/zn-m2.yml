@@ -1,0 +1,141 @@
+name: 编译
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+
+env:
+  CONFIG_FILE: ./config/zn-m2.config
+  UPLOAD_BIN_DIR: false
+  UPLOAD_FIRMWARE: true
+  UPLOAD_RELEASE: true
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
+      env:
+        TZ: Asia/Shanghai
+      volumes:
+        - /data:/data
+    steps:
+    - name: 探测环境
+      run: |
+        pwd
+        id
+        df -h
+        
+    - name: 更新软件索引
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        apt update -y
+        apt full-upgrade -y
+        apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+            bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
+            git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
+            libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libfuse-dev libssl-dev libtool lrzsz \
+            genisoimage msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip libpython3-dev qemu-utils \
+            rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+        
+    - name: 初始化环境
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+
+    - name: 签出代码
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ github.repository }}
+        ref: 'main-nss'
+
+    - name: 更新feeds
+      run: ./scripts/feeds update -a
+
+    - name: 安装feeds
+      run: ./scripts/feeds install -a
+
+    - name: 使用本仓库的配置
+      run: |
+        set -x
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE .config
+
+    - name: 下载包
+      id: package
+      run: |
+        make defconfig
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+
+    - name: 编译固件
+      id: compile
+      run: |
+        echo -e "$(nproc) thread compile"
+        make -j$(nproc) || make -j1 V=s
+        echo "status=success" >> $GITHUB_OUTPUT
+        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
+        [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
+        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+    - name: 看看还有多少空间
+      run: df -hT
+
+    - name: 上传编译产物
+      uses: actions/upload-artifact@v4
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
+      with:
+        name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        path: ./bin
+
+    - name: 组织文件
+      id: organize
+      run: |
+        cd ./bin/targets/*/*
+        rm -rf packages
+        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: 上传产物
+      uses: actions/upload-artifact@v4
+      with:
+        name: ipq6000${{ env.FILE_DATE }}
+        path: ${{ env.FIRMWARE }}
+
+    - name: 生成发布tag
+      id: tag
+      run: |
+        echo "release_tag=ZN-M2_$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
+        touch release.txt
+        echo "ZN-M2" >> release.txt
+        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
+        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        prerelease: true
+        body_path: release.txt
+        files: |
+         ${{ env.FIRMWARE }}/*.ubi
+         ${{ env.FIRMWARE }}/*.bin
+
+    - name: Delete releases and workflows runs
+      uses: ophub/delete-releases-workflows@main
+      with:
+        delete_releases: true
+        prerelease_option: true
+        releases_keep_latest: 3
+        delete_workflows: true
+        workflows_keep_day: 3
+        gh_token: ${{ secrets.GITHUB_TOKEN }}
