@@ -36,7 +36,7 @@ jobs:
   容器执行:
     needs: 主机清理
     runs-on: ubuntu-latest
-    containers:
+    container:
       image: ubuntu:20.04
         
     steps:
