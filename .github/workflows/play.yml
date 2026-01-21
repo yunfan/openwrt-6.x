@@ -31,7 +31,10 @@ jobs:
         wget --no-check-certificate 'https://github.com/elisescu/tty-share/releases/download/v2.4.1/tty-share_linux-amd64' -O /bin/tty-share
         chmod +x /bin/tty-share
 
+    - name: Setup TTY Faker
+        uses: achrinza/github-actions-tty-faker@v1.2.1
+
     - name: 配置反向链接
-      shell: 'script -q -e -c "bash {0}"'
+      # shell: 'script -q -e -c "bash {0}"'
       run: |
         tty-share --public
