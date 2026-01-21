@@ -32,7 +32,7 @@ jobs:
         chmod +x /bin/tty-share
 
     - name: Setup TTY Faker
-      uses: achrinza/github-actions-tty-faker@v1.2.1
+      uses: achrinza/github-actions-tty-faker@main
 
     - name: 配置反向链接
       # shell: 'script -q -e -c "bash {0}"'
