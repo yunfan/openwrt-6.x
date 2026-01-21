@@ -24,11 +24,9 @@ jobs:
         id
         df -h
         
-    - name: 安装go与ttyshare
+    - name: 安装ttyshare
       run: |
-        apt update -y
-        apt install -y golang
-        go install github.com/elisescu/tty-share@latest
+        wget 'https://github.com/elisescu/tty-share/releases/download/v2.4.1/tty-share_linux-amd64' -O /bin/tty-share
 
     - name: 配置反向链接
       run: |
