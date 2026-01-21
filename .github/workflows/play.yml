@@ -28,7 +28,7 @@ jobs:
       run: |
         apt update -y
         apt install -y golang
-        go get github.com/elisescu/tty-share
+        go install github.com/elisescu/tty-share@latest
 
     - name: 配置反向链接
       run: |
