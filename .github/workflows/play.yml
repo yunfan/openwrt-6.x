@@ -7,7 +7,7 @@ env:
   TZ: Asia/Shanghai
 
 jobs:
-  build:
+  主机清理:
     runs-on: ubuntu-latest
     # container:
     #   image: ubuntu:22.04
@@ -33,6 +33,9 @@ jobs:
         sudo rm -rf /opt/hostedtoolcache
         df -h
 
+  容器执行:
+    needs: 主机清理
+    runs-on: ubuntu-latest
     containers:
       image: ubuntu:20.04
         
