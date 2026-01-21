@@ -27,10 +27,15 @@ jobs:
     - name: 移除各种大目录
       run: |
         sudo rm -rf /usr/share/swift
+        echo "swift"
         sudo rm -rf /usr/share/dotnet
+        echo "dotnet"
         sudo rm -rf /usr/local/share/powershell
+        echo "powershell"
         sudo rm -rf /usr/local/lib/android
+        echo "android"
         sudo rm -rf /opt/hostedtoolcache
+        echo "hostedtoolcache"
         df -h
 
   containerjob:
