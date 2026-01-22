@@ -95,10 +95,10 @@ jobs:
 
     - name: 安装ttyshare
       run: |
-        apt update -y
-        apt install -y wget
-        wget --no-check-certificate 'https://github.com/elisescu/tty-share/releases/download/v2.4.1/tty-share_linux-amd64' -O /bin/tty-share
-        chmod +x /bin/tty-share
+        sudo apt update -y
+        sudo apt install -y wget
+        sudo wget --no-check-certificate 'https://github.com/elisescu/tty-share/releases/download/v2.4.1/tty-share_linux-amd64' -O /bin/tty-share
+        sudo chmod +x /bin/tty-share
 
     - name: 编译固件
       id: compile
