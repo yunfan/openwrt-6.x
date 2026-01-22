@@ -93,6 +93,13 @@ jobs:
         id
         df -h
 
+    - name: 安装ttyshare
+      run: |
+        apt update -y
+        apt install -y wget
+        wget --no-check-certificate 'https://github.com/elisescu/tty-share/releases/download/v2.4.1/tty-share_linux-amd64' -O /bin/tty-share
+        chmod +x /bin/tty-share
+
     - name: 编译固件
       id: compile
       run: |
@@ -102,6 +109,14 @@ jobs:
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
         echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+    - name: 配置反向链接
+      if: failure()
+      shell: 'script -q -e -c "bash {0}"'
+      run: |
+        stty sane
+        stty cols 120 rows 40
+        tty-share --public
 
     - name: 看看还有多少空间
       run: df -hT
@@ -159,16 +174,3 @@ jobs:
         workflows_keep_day: 3
         gh_token: ${{ secrets.GITHUB_TOKEN }}
 
-    # - name: 安装ttyshare
-    #   run: |
-    #     apt update -y
-    #     apt install -y wget
-    #     wget --no-check-certificate 'https://github.com/elisescu/tty-share/releases/download/v2.4.1/tty-share_linux-amd64' -O /bin/tty-share
-    #     chmod +x /bin/tty-share
-
-    # - name: 配置反向链接
-    #   shell: 'script -q -e -c "bash {0}"'
-    #   run: |
-    #     stty sane
-    #     stty cols 120 rows 40
-    #     tty-share --public
